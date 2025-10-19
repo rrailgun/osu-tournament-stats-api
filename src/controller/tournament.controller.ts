@@ -5,6 +5,7 @@ import { checkForErrors } from "../util/redirect.util";
 import { body, query } from "express-validator";
 import { Client, LegacyClient } from "osu-web.js";
 import pgPromise from "pg-promise";
+import { calculateAccuracy } from "../util/calc.util";
 
 class TournamentController {
 
@@ -23,12 +24,22 @@ class TournamentController {
         await body('name').notEmpty().isString().withMessage('Name must be a string').run(req);
         if (await checkForErrors(req, res)) return;
         let user: any = req.user;
-        let result = await db.one(`INSERT INTO "Tournament" (name, creator)VALUES ($1, $2)RETURNING *`, [req.body.name!, user!.player_id]);
+        await db.one('INSERT INTO "User" (id, username) VALUES($1, $2) ON CONFLICT (id) DO NOTHING', [user!.player_id, user!.username])
+        let result = await db.one(`INSERT INTO "Tournament" (name, creator)VALUES ($1, $2)RETURNING *`, [req.body.name, user!.player_id]);
+        res.status(201).json(result);
+    }
+
+    async createRound(req: Request, res: Response) {
+        await Promise.all([
+            body('name').notEmpty().isString().withMessage('Name must be a string').run(req),
+            body('tournamentId').notEmpty().isString().withMessage('tournamentId must be a string').run(req)
+        ])
+        if (await checkForErrors(req, res)) return;
+        let result = await db.one(`INSERT INTO "Round" (round_name, tournament_id)VALUES ($1, $2)RETURNING *`, [req.body.name, req.body.tournamentId]);
         res.status(201).json(result);
     }
 
     async addMpLinks(req: Request, res: Response) {
-        console.log(req.body)
         await Promise.all([
             body('mpLinks')
                 .isArray({ min: 1 }).withMessage('mpLinks must be a non-empty array')
@@ -38,38 +49,83 @@ class TournamentController {
 
             body('tournamentId')
                 .isString().withMessage('tournamentId must be an integer')
+                .notEmpty().withMessage('tournamentId cannot be empty')
                 .run(req),
 
-            body('round')
-                .isString().withMessage('round must be a string')
-                .notEmpty().withMessage('round cannot be empty')
+            body('roundId')
+                .isString().withMessage('roundId must be a string')
+                .notEmpty().withMessage('roundId cannot be empty')
                 .run(req)
         ]);
         if (await checkForErrors(req, res)) return;
         let api = new LegacyClient(process.env.OSU_LEGACY_API!)
         let mpLinks: number[] = req.body.mpLinks;
-        let tournamentId: number = req.body.tournamentId;
-        let round: string = req.body.round;
+        let tournament_id: number = req.body.tournamentId;
+        let round_id: string = req.body.roundId;
 
-        res.status(202).send({status: 'PENDING'});
+        res.status(202).send({ status: 'PENDING' });
         setImmediate(async () => {
             let pgp = pgPromise();
             let matches = [];
-            for (let multId of mpLinks) {
-                let match = await api.getMultiplayerLobby({ mp: multId });
+            let scores = [];
+            for (let match_id of mpLinks) {
+                let match = await api.getMultiplayerLobby({ mp: match_id });
                 matches.push(match);
-                console.log(match);
+                for (let game of match!.games) {
+                    for (let score of game.scores) {
+                        let count300 = score.count300
+                        let count100 = score.count100
+                        let count50 = score.count50
+                        let countmiss = score.countmiss
+
+                        let row = {
+                            tournament_id,
+                            match_id,
+                            player_id: score.user_id,
+                            beatmap_id: game.beatmap_id,
+                            score: score.score,
+                            count300,
+                            count100,
+                            count50,
+                            countmiss,
+                            combo: score.maxcombo,
+                            mods: score.enabled_mods,
+                        };
+                        scores.push(row);
+                    }
+                }
             }
-            let matchesTableInfo = matches.map(mp => ({ id: mp?.match.match_id, name: mp?.match.name }))
+            let matchesTableInfo = matches.map(mp => ({ match_id: mp?.match.match_id, match_name: mp?.match.name, round_id: round_id }))
             let matchColumns = new pgp.helpers.ColumnSet(
-                ['id', 'name'],
+                ['match_id', 'match_name', 'round_id'],
                 { table: 'Match' }
             );
-            db.none(pgp.helpers.insert(matchesTableInfo, matchColumns)+ ' ON CONFLICT (id) DO NOTHING');
+            let scoreColumns = new pgp.helpers.ColumnSet([
+                'tournament_id',
+                'match_id',
+                'player_id',
+                'beatmap_id',
+                'score',
+                'count300',
+                'count100',
+                'count50',
+                'countmiss',
+                'combo',
+                'mods',
+            ], {
+                table: 'Scores'
+            });
+            db.none(pgp.helpers.insert(matchesTableInfo, matchColumns) + ' ON CONFLICT (match_id) DO NOTHING');
+            // db.none(pgp.helpers.insert(scores, scoreColumns) + `ON CONFLICT (tournament_id, match_id, player_id, beatmap_id) DO NOTHING`);
+            for (let score of scores) {
+                try {
+                    await db.none(pgp.helpers.insert(score, scoreColumns) + `ON CONFLICT (tournament_id, match_id, player_id, beatmap_id) DO NOTHING`);
+                }
+                catch (e) {
+                    console.log(e)
+                }
+            }
         });
-
-
-
     }
 }
 
