@@ -12,12 +12,14 @@ import db from './db';
 
 import playerRouter from './routes/player.route';
 import tournamentRouter from './routes/tournament.route';
+import scoresRouter from './routes/scores.route';
 
 
 const app = express();
 const apiRouter = express.Router();
 app.use(express.json());
 app.use(cors({
+    origin: 'http://localhost:4200',
     credentials: true
 }));
 app.use(bodyParser.json());
@@ -42,7 +44,7 @@ passport.use(new OAuth2Strategy({
         let api = new Client(_accessToken);
         api.users.getSelf().then(res => {
             console.log(_accessToken)
-            db.none(`INSERT INTO "Player" (id, name) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING`, [res.id, res.username]);
+            db.none(`INSERT INTO "User" (id, username) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING`, [res.id, res.username]);
             return cb(null, {
                 token: _accessToken,
                 refreshToken: _refreshToken,
@@ -73,6 +75,8 @@ apiRouter.get('/auth/cb', passport.authenticate('oauth2', { failureRedirect: '/'
 
 apiRouter.use('/players', playerRouter);
 apiRouter.use('/tournaments', tournamentRouter);
+apiRouter.use('/scores', scoresRouter);
+
 
 app.use('/api', apiRouter)
 
