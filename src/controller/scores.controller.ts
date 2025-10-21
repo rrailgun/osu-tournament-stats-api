@@ -22,7 +22,7 @@ class ScoresController {
                 .run(req)
         ]);
         if (await checkForErrors(req, res)) return;
-        let dbQuery = db.any('SELECT * FROM public."Scores"');
+        let dbQuery = db.any('SELECT * FROM public."Scores" LEFT JOIN public."User" ON public."User"."id" = public."Scores".player_id;');
         dbQuery.then((queryRes: Player[]) => {
             res.send(queryRes)
         })

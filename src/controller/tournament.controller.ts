@@ -5,9 +5,28 @@ import { checkForErrors } from "../util/redirect.util";
 import { body, query } from "express-validator";
 import { Client, LegacyClient } from "osu-web.js";
 import pgPromise from "pg-promise";
-import { calculateAccuracy } from "../util/calc.util";
+import { Game, MatchResponse, MatchUser } from "../models/match.model";
+import { MatchColumns, RoundColumns, ScoreColumns, UserColumns } from "../enum/columns.enum";
+import { Tables } from "../enum/tables.enum";
 
 class TournamentController {
+
+    async getTournamentDetails(req: Request, res: Response) {
+        let result = await db.one(`
+            SELECT
+                t.*,
+                COALESCE(
+                    json_agg(
+                        jsonb_build_object('round_id', r.round_id, 'round_name', r.round_name)
+                    )
+                ) AS rounds
+            FROM public."Tournament" t
+            LEFT JOIN public."Round" r ON r.tournament_id = t.id
+            WHERE t.id = $1
+            GROUP BY t.id
+            `, req.params.tournamentId)
+        res.send(result)
+    }
 
     async getTournamentList(req: Request, res: Response) {
         await query('query').optional().isString().withMessage('Query must be a string').run(req);
@@ -20,12 +39,23 @@ class TournamentController {
         })
     }
 
+    async getRoundsByTournament(tournamentId: string) {
+        const rounds = await db.any<{
+            round_id: string;
+            round_name: string;
+        }>(
+            `SELECT ${RoundColumns.ROUND_ID}, ${RoundColumns.ROUND_NAME} FROM "${Tables.ROUND}" WHERE ${RoundColumns.TOURNAMENT_ID} = $1`,
+            [tournamentId]
+        );
+
+        return rounds;
+    }
+
     async createTournament(req: Request, res: Response) {
         await body('name').notEmpty().isString().withMessage('Name must be a string').run(req);
         if (await checkForErrors(req, res)) return;
         let user: any = req.user;
-        await db.one('INSERT INTO "User" (id, username) VALUES($1, $2) ON CONFLICT (id) DO NOTHING', [user!.player_id, user!.username])
-        let result = await db.one(`INSERT INTO "Tournament" (name, creator)VALUES ($1, $2)RETURNING *`, [req.body.name, user!.player_id]);
+        let result = await db.one(`INSERT INTO "Tournament" (name, creator)VALUES ($1, $2) RETURNING *`, [req.body.name, user!.player_id]);
         res.status(201).json(result);
     }
 
@@ -58,7 +88,8 @@ class TournamentController {
                 .run(req)
         ]);
         if (await checkForErrors(req, res)) return;
-        let api = new LegacyClient(process.env.OSU_LEGACY_API!)
+        let user: any = req.user;
+        let apiV2 = new Client(user.token)
         let mpLinks: number[] = req.body.mpLinks;
         let tournament_id: number = req.body.tournamentId;
         let round_id: string = req.body.roundId;
@@ -66,65 +97,77 @@ class TournamentController {
         res.status(202).send({ status: 'PENDING' });
         setImmediate(async () => {
             let pgp = pgPromise();
-            let matches = [];
+            let matches: MatchResponse[] = [];
             let scores = [];
+            let users: Map<number, MatchUser> = new Map<number, MatchUser>();
             for (let match_id of mpLinks) {
-                let match = await api.getMultiplayerLobby({ mp: match_id });
+                let match: MatchResponse = await apiV2.getUndocumented('matches/' + match_id);
+                match.users.forEach(user => {
+                    users.set(user.id, user);
+                })
+                let games: Game[] = match.events.map(event => event.game).filter(game => game !== undefined);
                 matches.push(match);
-                for (let game of match!.games) {
+                for (let game of games) {
                     for (let score of game.scores) {
-                        let count300 = score.count300
-                        let count100 = score.count100
-                        let count50 = score.count50
-                        let countmiss = score.countmiss
-
                         let row = {
                             tournament_id,
                             match_id,
                             player_id: score.user_id,
                             beatmap_id: game.beatmap_id,
                             score: score.score,
-                            count300,
-                            count100,
-                            count50,
-                            countmiss,
-                            combo: score.maxcombo,
-                            mods: score.enabled_mods,
+                            accuracy: score.accuracy,
+                            count300: score.statistics.count_300,
+                            count100: score.statistics.count_100,
+                            count50: score.statistics.count_50,
+                            countmiss: score.statistics.count_miss,
+                            combo: score.max_combo,
+                            mods: score.mods,
+                            rank: score.rank,
+                            date: score.created_at
                         };
                         scores.push(row);
                     }
                 }
             }
-            let matchesTableInfo = matches.map(mp => ({ match_id: mp?.match.match_id, match_name: mp?.match.name, round_id: round_id }))
+            let userColumns = new pgp.helpers.ColumnSet([
+                UserColumns.ID,
+                UserColumns.USERNAME,
+                { name: UserColumns.COUNTRY_CODE, init: (v: any) => v.source.country.code },
+                { name: UserColumns.COUNTRY_NAME, init: (v: any) => v.source.country.name },
+            ], {
+                table: Tables.USER
+            });
+
+            db.none(pgp.helpers.insert(Array.from(users.values()), userColumns) + `ON CONFLICT (id) DO UPDATE SET
+                username = EXCLUDED.username,
+                country_code = EXCLUDED.country_code,
+                country_name = EXCLUDED.country_name
+                `);
+            let matchesTableInfo = matches.map(mp => ({ match_id: mp?.match.id, match_name: mp?.match.name, round_id: round_id }))
             let matchColumns = new pgp.helpers.ColumnSet(
-                ['match_id', 'match_name', 'round_id'],
-                { table: 'Match' }
+                [MatchColumns.MATCH_ID, MatchColumns.MATCH_NAME, MatchColumns.ROUND_ID],
+                { table: Tables.MATCH }
             );
             let scoreColumns = new pgp.helpers.ColumnSet([
-                'tournament_id',
-                'match_id',
-                'player_id',
-                'beatmap_id',
-                'score',
-                'count300',
-                'count100',
-                'count50',
-                'countmiss',
-                'combo',
-                'mods',
+                ScoreColumns.TOURNAMENT_ID,
+                ScoreColumns.MATCH_ID,
+                ScoreColumns.PLAYER_ID,
+                ScoreColumns.BEATMAP_ID,
+                ScoreColumns.SCORE,
+                ScoreColumns.COUNT_300,
+                ScoreColumns.COUNT_100,
+                ScoreColumns.COUNT_50,
+                ScoreColumns.COUNT_MISS,
+                ScoreColumns.ACCURACY,
+                ScoreColumns.COMBO,
+                ScoreColumns.MODS,
+                ScoreColumns.RANK,
+                ScoreColumns.DATE
             ], {
-                table: 'Scores'
+                table: Tables.SCORES
             });
             db.none(pgp.helpers.insert(matchesTableInfo, matchColumns) + ' ON CONFLICT (match_id) DO NOTHING');
-            // db.none(pgp.helpers.insert(scores, scoreColumns) + `ON CONFLICT (tournament_id, match_id, player_id, beatmap_id) DO NOTHING`);
-            for (let score of scores) {
-                try {
-                    await db.none(pgp.helpers.insert(score, scoreColumns) + `ON CONFLICT (tournament_id, match_id, player_id, beatmap_id) DO NOTHING`);
-                }
-                catch (e) {
-                    console.log(e)
-                }
-            }
+            db.none(pgp.helpers.insert(scores, scoreColumns) + `ON CONFLICT (tournament_id, match_id, player_id, beatmap_id) DO NOTHING`);
         });
     }
 }

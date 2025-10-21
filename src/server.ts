@@ -43,7 +43,6 @@ passport.use(new OAuth2Strategy({
     function (_accessToken: any, _refreshToken: any, profile: any, cb: any) {
         let api = new Client(_accessToken);
         api.users.getSelf().then(res => {
-            console.log(_accessToken)
             db.none(`INSERT INTO "User" (id, username) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING`, [res.id, res.username]);
             return cb(null, {
                 token: _accessToken,
