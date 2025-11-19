@@ -47,3 +47,9 @@ export enum BeatmapColumns {
     ARTIST = 'artist',
     CREATOR = 'creator'
 }
+
+export enum PoolColumns {
+    SLOT = 'slot',
+    ROUND_ID = 'round_id',
+    BEATMAP_ID = 'beatmap_id'
+}

@@ -4,5 +4,6 @@ export enum Tables {
   MATCH = 'Match',
   USER = 'User',
   BEATMAP = 'Beatmap',
-  SCORES = 'Scores'
+  SCORES = 'Scores',
+  POOL = 'Pool'
 }

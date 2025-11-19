@@ -8,8 +8,6 @@ tournamentRouter.get("/search", tournamentController.getTournamentList);
 tournamentRouter.post('/createTournament', isBasicAuthenticated, tournamentController.createTournament);
 tournamentRouter.get('/:tournamentId', tournamentController.getTournamentDetails);
 tournamentRouter.get('/:tournamentId/rounds', tournamentController.getRoundsByTournament);
-// tournamentRouter.post("/addMpLinks", isBasicAuthenticated, tournamentController.addMpLinks);
-tournamentRouter.post("/addMpLinks", tournamentController.addMpLinks);
 tournamentRouter.post("/createRound", tournamentController.createRound);
 
 

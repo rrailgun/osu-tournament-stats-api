@@ -48,17 +48,9 @@ class ScoresController {
             }
 
             let query = `
-                SELECT s.*
-                FROM public."Scores" s
+                SELECT *
+                FROM public."scores_view" s
             `;
-
-            // Only join Match + Round if roundId was used
-            if (joinRound) {
-                query += `
-                    JOIN public."Match" m ON s."match_id" = m."match_id"
-                    JOIN public."Round" r ON m."round_id" = r."round_id"
-                `;
-            }
 
             if (conditions.length > 0) {
                 query += " WHERE " + conditions.join(" AND ");

@@ -6,6 +6,9 @@ SELECT
     m.round_id,
     r.tournament_id,
 
+    -- Slot from Pool
+    p.slot,
+
     -- User
     u.username AS player_username,
     u.country_code,
@@ -27,4 +30,5 @@ JOIN public."Match" m ON m.match_id = s.match_id
 JOIN public."Round" r ON r.round_id = m.round_id
 JOIN public."Tournament" t ON t.id = r.tournament_id
 JOIN public."User" u ON u.id = s.player_id
-JOIN public."Beatmap" b ON b.id = s.beatmap_id;
+JOIN public."Beatmap" b ON b.id = s.beatmap_id
+JOIN public."Pool" p ON p.beatmap_id = s.beatmap_id AND p.round_id = m.round_id;

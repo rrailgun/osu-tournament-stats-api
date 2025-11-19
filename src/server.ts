@@ -13,6 +13,7 @@ import db from './db';
 import playerRouter from './routes/player.route';
 import tournamentRouter from './routes/tournament.route';
 import scoresRouter from './routes/scores.route';
+import roundRouter from './routes/round.route';
 
 
 const app = express();
@@ -75,6 +76,7 @@ apiRouter.get('/auth/cb', passport.authenticate('oauth2', { failureRedirect: '/'
 apiRouter.use('/players', playerRouter);
 apiRouter.use('/tournaments', tournamentRouter);
 apiRouter.use('/scores', scoresRouter);
+apiRouter.use('/rounds', roundRouter);
 
 
 app.use('/api', apiRouter)
