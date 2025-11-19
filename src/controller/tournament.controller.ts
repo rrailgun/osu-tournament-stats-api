@@ -91,7 +91,6 @@ class TournamentController {
         let user: any = req.user;
         let apiV2 = new Client(user.token)
         let mpLinks: number[] = req.body.mpLinks;
-        let tournament_id: number = req.body.tournamentId;
         let round_id: string = req.body.roundId;
 
         res.status(202).send({ status: 'PENDING' });
@@ -110,7 +109,6 @@ class TournamentController {
                 for (let game of games) {
                     for (let score of game.scores) {
                         let row = {
-                            tournament_id,
                             match_id,
                             player_id: score.user_id,
                             beatmap_id: game.beatmap_id,
@@ -149,7 +147,6 @@ class TournamentController {
                 { table: Tables.MATCH }
             );
             let scoreColumns = new pgp.helpers.ColumnSet([
-                ScoreColumns.TOURNAMENT_ID,
                 ScoreColumns.MATCH_ID,
                 ScoreColumns.PLAYER_ID,
                 ScoreColumns.BEATMAP_ID,
@@ -167,7 +164,7 @@ class TournamentController {
                 table: Tables.SCORES
             });
             db.none(pgp.helpers.insert(matchesTableInfo, matchColumns) + ' ON CONFLICT (match_id) DO NOTHING');
-            db.none(pgp.helpers.insert(scores, scoreColumns) + `ON CONFLICT (tournament_id, match_id, player_id, beatmap_id) DO NOTHING`);
+            db.none(pgp.helpers.insert(scores, scoreColumns) + `ON CONFLICT (match_id, player_id, beatmap_id) DO NOTHING`);
         });
     }
 }
