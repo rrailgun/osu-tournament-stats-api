@@ -2,19 +2,24 @@ import { Request, Response } from "express";
 import { body } from "express-validator";
 import db from "../db";
 import { Player } from "../models/player.model";
+import { ScoresViewColumns } from "../enum/columns.enum";
+import { Views } from "../enum/tables.enum";
 
 class ScoresController {
     async getScores(req: Request, res: Response) {
         try {
             await Promise.all([
                 body('tournamentId').optional().isString().run(req),
-                body('playerId').optional().isInt().run(req),
-                body('beatmapId').optional().isInt().run(req),
-                body('matchId').optional().isInt().run(req),
+                body('playerIds').optional().isArray().run(req),
+                body('playerIds.*').optional().isInt().run(req),
+                body('beatmapIds').optional().isArray().run(req),
+                body('beatmapIds.*').optional().isInt().run(req),
+                body('matchIds').optional().isArray().run(req),
+                body('matchIds.*').optional().isInt().run(req),
                 body('roundId').optional().isString().run(req)
             ]);
 
-            const { tournamentId, matchId, playerId, beatmapId, roundId } = req.body;
+            const { tournamentId, matchIds, playerIds, beatmapIds, roundId } = req.body;
 
             let conditions: string[] = [];
             let params: Record<string, any> = {};
@@ -22,34 +27,34 @@ class ScoresController {
             let joinRound = false;
 
             if (tournamentId) {
-                conditions.push(`s."tournament_id"::text = $(tournamentId)`);
+                conditions.push(`"${ScoresViewColumns.TOURNAMENT_ID}"::text = $(tournamentId)`);
                 params.tournamentId = tournamentId;
             }
 
             if (roundId) {
                 joinRound = true;
-                conditions.push(`r."round_id"::text = $(roundId)`);
+                conditions.push(`"${ScoresViewColumns.ROUND_ID}"::text = $(roundId)`);
                 params.roundId = roundId;
             }
 
-            if (matchId) {
-                conditions.push(`s."match_id" = $(matchId)`);
-                params.matchId = matchId;
+            if (matchIds && matchIds.length > 0) {
+                conditions.push(`"${ScoresViewColumns.MATCH_ID}" IN ($(matchIds:csv))`);
+                params.matchIds = matchIds;
             }
 
-            if (playerId) {
-                conditions.push(`s."player_id" = $(playerId)`);
-                params.playerId = playerId;
+            if (playerIds && playerIds.length > 0) {
+                conditions.push(`"${ScoresViewColumns.PLAYER_ID}" IN ($(playerIds:csv))`);
+                params.playerIds = playerIds;
             }
 
-            if (beatmapId) {
-                conditions.push(`s."beatmap_id" = $(beatmapId)`);
-                params.beatmapId = beatmapId;
+            if (beatmapIds && beatmapIds.length > 0) {
+                conditions.push(`"${ScoresViewColumns.BEATMAP_ID}" IN ($(beatmapIds:csv))`);
+                params.beatmapIds = beatmapIds;
             }
 
             let query = `
                 SELECT *
-                FROM public."scores_view" s
+                FROM public."${Views.SCORES_VIEW}" s
             `;
 
             if (conditions.length > 0) {

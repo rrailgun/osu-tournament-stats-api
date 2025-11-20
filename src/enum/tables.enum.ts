@@ -7,3 +7,7 @@ export enum Tables {
   SCORES = 'Scores',
   POOL = 'Pool'
 }
+
+export enum Views {
+  SCORES_VIEW = 'scores_view'
+}

@@ -53,3 +53,32 @@ export enum PoolColumns {
     ROUND_ID = 'round_id',
     BEATMAP_ID = 'beatmap_id'
 }
+
+export enum ScoresViewColumns {
+    MATCH_ID = "match_id",
+    PLAYER_ID = "player_id",
+    BEATMAP_ID = "beatmap_id",
+    SCORE = "score",
+    COUNT300 = "count300",
+    COUNT100 = "count100",
+    COUNT50 = "count50",
+    COUNTMISS = "countmiss",
+    ACCURACY = "accuracy",
+    COMBO = "combo",
+    MODS = "mods",
+    RANK = "rank",
+    DATE = "date",
+    ROUND_ID = "round_id",
+    TOURNAMENT_ID = "tournament_id",
+    SLOT = "slot",
+    PLAYER_USERNAME = "player_username",
+    COUNTRY_CODE = "country_code",
+    COUNTRY_NAME = "country_name",
+    BEATMAP_TITLE = "beatmap_title",
+    BEATMAP_ARTIST = "beatmap_artist",
+    BEATMAP_CREATOR = "beatmap_creator",
+    BEATMAP_SR = "beatmap_sr",
+    MATCH_NAME = "match_name",
+    ROUND_NAME = "round_name",
+    TOURNAMENT_NAME = "tournament_name"
+}

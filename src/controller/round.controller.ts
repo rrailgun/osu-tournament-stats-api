@@ -12,7 +12,7 @@ import { checkForErrors } from "../util/redirect.util";
 class RoundController {
     async getRounds(req: Request, res: Response) {
         try {
-            const rounds = await db.any('SELECT * FROM public."Round"');
+            const rounds = await db.any(`SELECT * FROM public."${Tables.ROUND}"`);
             res.status(200).json(rounds);
         } catch (error) {
             res.status(500).json({ error: 'Internal Server Error' });
@@ -23,7 +23,7 @@ class RoundController {
         await body('roundId').isString().withMessage('roundId must be a string').run(req);
         if (await checkForErrors(req, res)) return;
         let roundId = req.body.roundId;
-        let pool = await db.any('SELECT * FROM public."Pool" WHERE round_id = $1', [roundId]);
+        let pool = await db.any(`SELECT * FROM public."${Tables.POOL}" WHERE ${PoolColumns.ROUND_ID} = $1`, [roundId]);
         res.status(200).json(pool);
     }
 
