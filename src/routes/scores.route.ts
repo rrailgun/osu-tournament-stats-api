@@ -5,5 +5,6 @@ import scoresController from "../controller/scores.controller";
 const scoresRouter = express.Router();
 
 scoresRouter.post("/query", scoresController.getScores);
+scoresRouter.post("/groupedQuery", scoresController.getScoresGrouped);
 
 export default scoresRouter;

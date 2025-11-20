@@ -3,11 +3,8 @@ import { Player } from "../models/player.model";
 import db from "../db";
 import { checkForErrors } from "../util/redirect.util";
 import { body, query } from "express-validator";
-import { Client, LegacyClient } from "osu-web.js";
-import pgPromise from "pg-promise";
-import { Game, MatchResponse, MatchUser } from "../models/match.model";
-import { MatchColumns, RoundColumns, ScoreColumns, UserColumns } from "../enum/columns.enum";
 import { Tables } from "../enum/tables.enum";
+import { RoundColumns } from "../enum/columns.enum";
 
 class TournamentController {
 

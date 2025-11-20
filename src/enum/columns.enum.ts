@@ -43,9 +43,11 @@ export enum UserColumns {
 export enum BeatmapColumns {
     ID = 'id',
     DIFFICULTY_RATING = 'difficulty_rating',
+    DIFFICULTY_NAME = 'difficulty_name',
     TITLE = 'title',
     ARTIST = 'artist',
-    CREATOR = 'creator'
+    CREATOR = 'creator',
+    BEATMAPSET_ID = 'beatmapset_id'
 }
 
 export enum PoolColumns {

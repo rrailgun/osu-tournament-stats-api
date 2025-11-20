@@ -49,7 +49,9 @@ class RoundController {
                 artist: beatmap.beatmapset.artist,
                 title: beatmap.beatmapset.title,
                 creator: beatmap.beatmapset.creator,
-                difficulty_rating: beatmap.difficulty_rating
+                difficulty_rating: beatmap.difficulty_rating,
+                [BeatmapColumns.DIFFICULTY_NAME]: beatmap.version,
+                [BeatmapColumns.BEATMAPSET_ID]: beatmap.beatmapset_id
             }))
 
             let beatmap_columns = new pgp.helpers.ColumnSet([
@@ -57,7 +59,9 @@ class RoundController {
                 BeatmapColumns.ARTIST,
                 BeatmapColumns.CREATOR,
                 BeatmapColumns.TITLE,
-                BeatmapColumns.DIFFICULTY_RATING
+                BeatmapColumns.DIFFICULTY_RATING,
+                BeatmapColumns.DIFFICULTY_NAME,
+                BeatmapColumns.BEATMAPSET_ID
             ], {
                 table: Tables.BEATMAP
             });
@@ -71,7 +75,7 @@ class RoundController {
                 table: Tables.POOL
             });
             db.none(pgp.helpers.insert(beatmaps, pool_columns) + ' ON CONFLICT ("round_id", "slot") DO NOTHING');
-
+            res.status(200).json({ status: 'Beatmaps added to pool' });
         }
         catch (error) {
             console.log(error)

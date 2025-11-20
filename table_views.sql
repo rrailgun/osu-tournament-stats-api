@@ -19,6 +19,8 @@ SELECT
     b.artist AS beatmap_artist,
     b.creator AS beatmap_creator,
     b.difficulty_rating AS beatmap_sr,
+    b.difficulty_name,
+    b.beatmapset_id,
 
     -- Match / Round / Tournament names
     m.match_name,
