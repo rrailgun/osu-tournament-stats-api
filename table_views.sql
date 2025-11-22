@@ -10,15 +10,15 @@ SELECT
     p.slot,
 
     -- User
-    u.username AS player_username,
+    u.username,
     u.country_code,
     u.country_name,
 
     -- Beatmap
-    b.title AS beatmap_title,
-    b.artist AS beatmap_artist,
-    b.creator AS beatmap_creator,
-    b.difficulty_rating AS beatmap_sr,
+    b.title,
+    b.artist,
+    b.creator,
+    b.difficulty_rating,
     b.difficulty_name,
     b.beatmapset_id,
 

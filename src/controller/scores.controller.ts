@@ -52,6 +52,51 @@ function buildFilters(body: any) {
 }
 
 class ScoresController {
+    /**
+     * Groups scores by beatmap_id and extracts beatmap info into a separate object.
+     * Response: Array of { beatmap_id, beatmap_info, scores }
+     */
+    async getScoresGroupedByBeatmap(req: Request, res: Response) {
+        try {
+            await Promise.all([
+                body('tournamentId').optional().isString().run(req),
+                body('playerIds').optional().isArray().run(req),
+                body('playerIds.*').optional().isInt().run(req),
+                body('beatmapIds').optional().isArray().run(req),
+                body('beatmapIds.*').optional().isInt().run(req),
+                body('matchIds').optional().isArray().run(req),
+                body('matchIds.*').optional().isInt().run(req),
+                body('roundId').optional().isString().run(req)
+            ]);
+            if (await checkForErrors(req, res)) return;
+            let { conditions, params } = buildFilters(req.body);
+            let query = `
+                SELECT
+                    (
+                        jsonb_agg(
+                            jsonb_build_object(
+                                '${ScoresViewColumns.BEATMAP_ID}', s."${ScoresViewColumns.BEATMAP_ID}",
+                                '${ScoresViewColumns.BEATMAP_TITLE}', s."${ScoresViewColumns.BEATMAP_TITLE}",
+                                '${ScoresViewColumns.BEATMAP_ARTIST}', s."${ScoresViewColumns.BEATMAP_ARTIST}",
+                                '${ScoresViewColumns.BEATMAP_DIFFICULTY_NAME}', s."${ScoresViewColumns.BEATMAP_DIFFICULTY_NAME}",
+                                '${ScoresViewColumns.BEATMAP_CREATOR}', s."${ScoresViewColumns.BEATMAP_CREATOR}",
+                                '${ScoresViewColumns.BEATMAP_SR}', s."${ScoresViewColumns.BEATMAP_SR}",
+                                '${ScoresViewColumns.BEATMAPSET_ID}', s."${ScoresViewColumns.BEATMAPSET_ID}"
+                            )
+                        )->0
+                    ) AS beatmap_info,
+                    json_agg(s ORDER BY s."${ScoresViewColumns.SCORE}" DESC) AS scores
+                FROM public."${Views.SCORES_VIEW}" s
+                ${conditions.length ? "WHERE " + conditions.join(" AND ") : ""}
+                GROUP BY s."${ScoresViewColumns.BEATMAP_ID}";
+                `;
+            const result = await db.any(query, params);
+            res.send(result);
+        } catch (err) {
+            console.error(err);
+            res.status(500).send({ error: "Failed to fetch scores grouped by beatmap" });
+        }
+    }
 
     async getScores(req: Request, res: Response) {
         try {

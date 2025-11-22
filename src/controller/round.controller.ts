@@ -151,12 +151,6 @@ class RoundController {
             ], {
                 table: Tables.USER
             });
-
-            db.none(pgp.helpers.insert(Array.from(users.values()), userColumns) + `ON CONFLICT (id) DO UPDATE SET
-                username = EXCLUDED.username,
-                country_code = EXCLUDED.country_code,
-                country_name = EXCLUDED.country_name
-                `);
             let matchesTableInfo = matches.map(mp => ({ match_id: mp?.match.id, match_name: mp?.match.name, round_id: round_id }))
             let matchColumns = new pgp.helpers.ColumnSet(
                 [MatchColumns.MATCH_ID, MatchColumns.MATCH_NAME, MatchColumns.ROUND_ID],
@@ -179,8 +173,18 @@ class RoundController {
             ], {
                 table: Tables.SCORES
             });
-            db.none(pgp.helpers.insert(matchesTableInfo, matchColumns) + ' ON CONFLICT (match_id) DO NOTHING');
-            db.none(pgp.helpers.insert(scores, scoreColumns) + `ON CONFLICT (match_id, player_id, beatmap_id) DO NOTHING`);
+            try {
+                // Temporary - will eventually be its own endpoint to add players (and set teams) to a tournament
+                db.none(pgp.helpers.insert(Array.from(users.values()), userColumns) + `ON CONFLICT (id) DO UPDATE SET
+                username = EXCLUDED.username,
+                country_code = EXCLUDED.country_code,
+                country_name = EXCLUDED.country_name
+                `);
+                db.none(pgp.helpers.insert(matchesTableInfo, matchColumns) + ' ON CONFLICT (match_id) DO NOTHING');
+                db.none(pgp.helpers.insert(scores, scoreColumns) + `ON CONFLICT (match_id, player_id, beatmap_id) DO NOTHING`);
+            } catch (error) {
+                console.log(error)
+            }
         });
     }
 }
