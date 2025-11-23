@@ -38,8 +38,7 @@ class RoundController {
             let pgp = pgPromise();
             let roundId = req.body.roundId;
             let beatmaps = req.body.beatmapIds.map((b: any) => ({ beatmap_id: b.beatmapId, round_id: roundId, ...b }));
-            let user: any = req.user;
-            let apiV2 = new Client(user.token)
+            let apiV2 = new Client(req.token!)
             let beatmapsInfo = (await apiV2.beatmaps.getBeatmaps({
                 query: {
                     ids: beatmaps.map((b: any) => b.beatmapId)
@@ -97,8 +96,7 @@ class RoundController {
                 .run(req)
         ]);
         if (await checkForErrors(req, res)) return;
-        let user: any = req.user;
-        let apiV2 = new Client(user.token)
+        let apiV2 = new Client(req.token!)
         let mpLinks: number[] = req.body.mpLinks;
         let round_id: string = req.body.roundId;
         let poolBeatmaps: number[] =

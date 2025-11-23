@@ -1,9 +1,16 @@
-import { NextFunction, Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 
+export function isBasicAuthenticated(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
 
-export async function isBasicAuthenticated(req: Request, res: Response, next: NextFunction) {
-    if (req.user) next()
-    else res.sendStatus(401);
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.sendStatus(401);
+  }
+
+  // Extract the token and attach it to req
+  req.token = authHeader.replace(/^Bearer\s+/i, '');
+
+  next();
 }
 
 export default isBasicAuthenticated;

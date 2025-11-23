@@ -8,8 +8,7 @@ import { Client, UserExtended } from "osu-web.js";
 class PlayerController {
 
     async getSelfInfo(req: Request, res: Response) {
-        let user: any = req.user;
-        let api = new Client(user.token);
+        let api = new Client(req.token!);
         api.users.getSelf().then((userResponse: UserExtended) => {
             res.send({
                 username: userResponse.username,

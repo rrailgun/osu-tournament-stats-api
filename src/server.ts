@@ -6,7 +6,7 @@ dotenv.config()
 import session from 'express-session';
 import passport from 'passport';
 import OAuth2Strategy from 'passport-oauth2';
-import { Client } from 'osu-web.js';
+import { Auth, buildUrl, Client } from 'osu-web.js';
 import db from './db';
 
 
@@ -18,60 +18,28 @@ import roundRouter from './routes/round.route';
 
 const app = express();
 const apiRouter = express.Router();
+const osuApiAuth = new Auth(Number(process.env.OSU_CLIENT_ID), process.env.OSU_CLIENT_SECRET!, 'http://localhost:4200/auth');
+const authGrant = osuApiAuth.authorizationCodeGrant(['identify']);
 app.use(express.json());
 app.use(cors({
     origin: 'http://localhost:4200',
     credentials: true
 }));
 app.use(bodyParser.json());
-app.use(session({
-    secret: process.env.COOKIE_KEY || 'default',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { secure: false }
-}));
-app.use(passport.session())
 
-//temp
-passport.use(new OAuth2Strategy({
-    authorizationURL: 'https://osu.ppy.sh/oauth/authorize',
-    tokenURL: 'https://osu.ppy.sh/oauth/token',
-    clientID: process.env.OSU_CLIENT_ID || '',
-    clientSecret: process.env.OSU_CLIENT_SECRET || '',
-    scope: ['identify', 'public'],
-    callbackURL: "http://localhost:3000/api/auth/cb"
-},
-    function (_accessToken: any, _refreshToken: any, profile: any, cb: any) {
-        let api = new Client(_accessToken);
-        api.users.getSelf().then(res => {
-            db.none(`INSERT INTO "User" (id, username) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING`, [res.id, res.username]);
-            return cb(null, {
-                token: _accessToken,
-                refreshToken: _refreshToken,
-                username: res.username,
-                player_id: res.id
-            });
-        })
+app.post('/auth', async (req, res) => {
+    let code = req.body.code;
+    if (!code) return res.status(400).send({ error: 'Code is required' });
+    try {
+        let token = await authGrant.requestToken(code);
+        res.send(token);
     }
-));
-
-passport.serializeUser(function (user, cb) {
-    process.nextTick(function () {
-        return cb(null, user);
-    });
+    catch (err) {
+        console.error(err);
+        res.status(500).send({ error: 'Failed to authenticate' });  
+    }
 });
 
-passport.deserializeUser(function (user: any, cb) {
-    process.nextTick(function () {
-        return cb(null, user);
-    });
-});
-
-apiRouter.get('/auth', passport.authenticate('oauth2'))
-apiRouter.get('/auth/cb', passport.authenticate('oauth2', { failureRedirect: '/' }), (req, res) => {
-    // req.session.cookie.maxAge = 365 * 24 * 60 * 60 * 1000;
-    res.redirect('http://localhost:4200/')
-})
 
 apiRouter.use('/players', playerRouter);
 apiRouter.use('/tournaments', tournamentRouter);
