@@ -14,11 +14,11 @@ class TournamentController {
                 t.*,
                 COALESCE(
                     json_agg(
-                        jsonb_build_object('round_id', r.round_id, 'round_name', r.round_name)
+                        jsonb_build_object('${RoundColumns.ROUND_ID}', r.${RoundColumns.ROUND_ID}, '${RoundColumns.ROUND_NAME}', r.${RoundColumns.ROUND_NAME})
                     )
                 ) AS rounds
-            FROM public."Tournament" t
-            LEFT JOIN public."Round" r ON r.tournament_id = t.id
+            FROM public."${Tables.TOURNAMENT}" t
+            LEFT JOIN public."${Tables.ROUND}" r ON r.${RoundColumns.TOURNAMENT_ID} = t.id
             WHERE t.id = $1
             GROUP BY t.id
             `, req.params.tournamentId)

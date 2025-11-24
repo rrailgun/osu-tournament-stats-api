@@ -8,13 +8,17 @@ import { Client, UserExtended } from "osu-web.js";
 class PlayerController {
 
     async getSelfInfo(req: Request, res: Response) {
-        let api = new Client(req.token!);
-        api.users.getSelf().then((userResponse: UserExtended) => {
+        try {
+            let api = new Client(req.token!);
+            let userResponse: UserExtended = await api.users.getSelf();
             res.send({
                 username: userResponse.username,
                 player_id: userResponse.id
             })
-        })
+        }
+        catch (err) {
+            res.status(500).send({ error: 'Failed to fetch user info' });
+        }
     }
 
     async getPlayerList(req: Request, res: Response) {
