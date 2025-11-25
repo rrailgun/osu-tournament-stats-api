@@ -81,7 +81,8 @@ class ScoresController {
                                 '${ScoresViewColumns.BEATMAP_DIFFICULTY_NAME}', s."${ScoresViewColumns.BEATMAP_DIFFICULTY_NAME}",
                                 '${ScoresViewColumns.BEATMAP_CREATOR}', s."${ScoresViewColumns.BEATMAP_CREATOR}",
                                 '${ScoresViewColumns.BEATMAP_SR}', s."${ScoresViewColumns.BEATMAP_SR}",
-                                '${ScoresViewColumns.BEATMAPSET_ID}', s."${ScoresViewColumns.BEATMAPSET_ID}"
+                                '${ScoresViewColumns.BEATMAPSET_ID}', s."${ScoresViewColumns.BEATMAPSET_ID}",
+                                '${ScoresViewColumns.SLOT}', s."${ScoresViewColumns.SLOT}"
                             )
                         )->0
                     ) AS beatmap_info,
