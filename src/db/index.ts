@@ -1,6 +1,9 @@
 import pgPromise from 'pg-promise';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const pgp = pgPromise();
-const db = pgp(`postgres://${process.env.PG_USERNAME}:${process.env.PG_PASSWORD}@${process.env.PG_HOST}:${process.env.PG_PORT}/osu_stats`)
+const db = pgp(`postgres://${process.env.POSTGRES_USER}:${process.env.POSTGRES_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.POSTGRES_DB}`)
 
 export default db;

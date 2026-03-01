@@ -1,0 +1,4 @@
+FROM postgres:latest
+
+COPY "POSTGRES_DB/osu_tournament_stats_v2.sql" /docker-entrypoint-initdb.d/01_schema.sql
+COPY "POSTGRES_DB/table_views.sql" /docker-entrypoint-initdb.d/02_views.sql

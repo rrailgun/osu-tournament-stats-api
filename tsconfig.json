@@ -5,8 +5,15 @@
     "module": "CommonJS",
     "target": "es2020",
     "moduleResolution": "node",
-    "types": ["node", "express"],
-    "typeRoots": ["./src/types", "./node_modules/@types"],
+    "types": [
+      "node",
+      "express"
+    ],
+    "typeRoots": [
+      "./src/types",
+      "./node_modules/@types"
+    ],
+    "outDir": "./dist",
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
@@ -19,5 +26,8 @@
     "moduleDetection": "force",
     "skipLibCheck": true
   },
-  "include": ["src/**/*.ts", "src/types/**/*.d.ts"]
+  "include": [
+    "src/**/*.ts",
+    "src/types/**/*.d.ts"
+  ]
 }
